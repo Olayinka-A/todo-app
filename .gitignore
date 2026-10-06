@@ -1,0 +1,12 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# App database (your personal todos - don't publish these)
+backend/todos.db
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.vscode/

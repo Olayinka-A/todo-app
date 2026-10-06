@@ -1,0 +1,16 @@
+{
+  "name": "ToDo App",
+  "short_name": "ToDo",
+  "description": "Simple colourful todo list with notes.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#764ba2",
+  "icons": [
+    {
+      "src": "/static/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
