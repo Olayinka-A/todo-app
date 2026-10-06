@@ -1,11 +1,11 @@
-"""ToDo App backend - FastAPI + sqlite3 (stdlib only). Beginner friendly."""
+"""ToDo App backend - FastAPI + SQLite/Turso (stdlib only). Beginner friendly."""
 import calendar as calmod
 import json
 import os
 import sqlite3
 from datetime import date, datetime, timedelta
 from pathlib import Path
-from typing import List, Optional
+from typing import Any, List, Optional
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -13,11 +13,43 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
+try:
+    from turso_db import TursoConn, load_env  # Vercel (service root is backend/)
+except ImportError:
+    from backend.turso_db import TursoConn, load_env  # local (project root on path)
+
+load_env()  # reads .env (local dev) — real env vars always win; .env is git-ignored
+
 BASE_DIR = Path(__file__).resolve().parent
-# DB path can be overridden with an env var (Vercel serverless FS is ephemeral:
-# set TODO_DB_PATH=/tmp/todos.db there — data won't persist between deploys).
-DB_PATH = Path(os.environ.get("TODO_DB_PATH", BASE_DIR / "todos.db"))
 FRONTEND_DIR = BASE_DIR.parent / "frontend"
+
+TURSO_URL = os.environ.get("TURSO_DATABASE_URL", "").strip()
+TURSO_TOKEN = os.environ.get("TURSO_AUTH_TOKEN", "").strip()
+USE_TURSO = bool(TURSO_URL and TURSO_TOKEN)
+
+
+def _resolve_db_path() -> Path:
+    """Local SQLite file: TODO_DB_PATH, else backend/todos.db (or /tmp if read-only)."""
+    env = os.environ.get("TODO_DB_PATH")
+    if env:
+        return Path(env)
+    probe = BASE_DIR / "todos.db"
+    try:
+        conn = sqlite3.connect(probe)
+        conn.execute("CREATE TABLE IF NOT EXISTS __write_probe (x INTEGER)")
+        conn.execute("DROP TABLE __write_probe")
+        conn.commit()
+        conn.close()
+        return probe
+    except sqlite3.OperationalError:
+        return Path("/tmp/todos.db")
+
+
+DB_PATH = _resolve_db_path()
+if USE_TURSO:
+    print("DB: Turso (libsql://…)", flush=True)
+else:
+    print(f"DB: local file {DB_PATH}", flush=True)
 
 app = FastAPI(title="ToDo App API")
 
@@ -31,9 +63,21 @@ app.add_middleware(
 
 # ---------- DB helpers ----------
 def get_db():
+    if USE_TURSO:
+        return TursoConn(TURSO_URL, TURSO_TOKEN)
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
+
+
+def batch_update_positions(conn, ordered_ids):
+    """One HTTP round-trip on Turso, plain loop on local SQLite."""
+    if hasattr(conn, "batch"):
+        conn.batch([("UPDATE todos SET position = ? WHERE id = ?", (pos, tid))
+                    for pos, tid in enumerate(ordered_ids)])
+    else:
+        for pos, tid in enumerate(ordered_ids):
+            conn.execute("UPDATE todos SET position = ? WHERE id = ?", (pos, tid))
 
 
 def ensure_column(conn, table: str, column: str, ddl: str):
@@ -87,7 +131,7 @@ def init_db():
     conn.close()
 
 
-def row_to_todo(row: sqlite3.Row) -> dict:
+def row_to_todo(row: Any) -> dict:
     try:
         due = row["due_date"]
     except (IndexError, KeyError):
@@ -313,8 +357,7 @@ def clear_completed():
     conn.commit()
     rows = conn.execute("SELECT * FROM todos ORDER BY position ASC").fetchall()
     # re-number positions
-    for pos, r in enumerate(rows):
-        conn.execute("UPDATE todos SET position = ? WHERE id = ?", (pos, r["id"]))
+    batch_update_positions(conn, [r["id"] for r in rows])
     conn.commit()
     rows = conn.execute("SELECT * FROM todos ORDER BY position ASC").fetchall()
     conn.close()
@@ -333,8 +376,7 @@ def reorder_todos(payload: ReorderRequest):
             status_code=400,
             detail=f"ordered_ids must contain exactly all todo ids. Got {payload.ordered_ids}",
         )
-    for pos, tid in enumerate(payload.ordered_ids):
-        conn.execute("UPDATE todos SET position = ? WHERE id = ?", (pos, tid))
+    batch_update_positions(conn, payload.ordered_ids)
     conn.commit()
     rows = conn.execute("SELECT * FROM todos ORDER BY position ASC").fetchall()
     conn.close()

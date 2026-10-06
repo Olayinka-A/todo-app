@@ -6,6 +6,9 @@ __pycache__/
 # App database (your personal todos - don't publish these)
 backend/todos.db
 
+# Secrets - Turso token etc. NEVER commit
+.env
+
 # OS / editors
 .DS_Store
 Thumbs.db
