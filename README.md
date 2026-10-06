@@ -60,8 +60,10 @@ Publish link: https://vercel.com/new
 Steps (beginner):
 1. Put this project on GitHub (new repo, upload these files).
 2. Open https://vercel.com/new → "Import" your repo.
-3. Vercel auto-detects `vercel.json` + `api/index.py` (already in this
-   project) and deploys. Your app will be live at `https://<name>.vercel.app`.
+3. Vercel auto-detects `vercel.json` (already in this project): two services
+   deploy as one project — `app` (pages, everything except `/api`) and
+   `backend` (API on `/api/*`), no bindings needed. Your app will be live
+   at `https://<name>.vercel.app`.
 4. In the Vercel dashboard for the project, go to Settings → Environment
    Variables and add: `TODO_DB_PATH` = `/tmp/todos.db`.
 
