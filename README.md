@@ -40,7 +40,7 @@ Health: http://127.0.0.1:8000/api/health
   for small (360px) phones and landscape mode
 
 ## Files
-- backend/main.py: all API + SQLite + serves frontend on port 8000
+- backend/main.py: Python API + SQLite + serves frontend on port 8000
 - backend/todos.db: SQLite database (auto-created)
 - frontend/index.html, app.js (React), styles.css, manifest.json, icon.svg
 
