@@ -66,14 +66,15 @@ Steps (beginner):
    at `https://<name>.vercel.app`.
 4. In the Vercel dashboard for the project, go to Settings → Environment
    Variables and add both (Values → copy from your local `.env`, never
-   commit that file):
+   commit that file), for **Production *and* Preview** environments:
    `TURSO_DATABASE_URL` = `libsql://todo-annie.aws-ap-northeast-1.turso.io`
    `TURSO_AUTH_TOKEN` = your Turso token.
-   Redeploy after adding them. This replaces the old SQLite file with your
-   hosted Turso database — data now persists across deploys.
+   Then Redeploy (env vars only apply to new deployments).
+5. Verify: open `https://<name>.vercel.app/api/health` — it must say
+   `"db":"turso"`. If it says `"db":"sqlite"`, the function is missing the
+   env vars (check the names, the environment scope, and redeploy).
 
-⚠️ Honest warning: Vercel's filesystem is ephemeral — SQLite data written to
-`/tmp` disappears on redeploys / cold starts. It works for a demo, but for
-real persistent data use a host with a real disk (e.g. Render, Railway, Fly)
-or switch the DB to Vercel Postgres later. Your local run
-(`python -m uvicorn ...`) keeps everything in `backend/todos.db` permanently.
+✅ With Turso, data persists across deploys and cold starts — your todos live
+in the hosted database, not on Vercel's disk. Only when the two env vars are
+missing does the app fall back to a local SQLite file (fine locally, useless
+on Vercel since that filesystem is wiped on every deploy).

@@ -26,7 +26,7 @@ python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000
 App: http://127.0.0.1:8000/ · Docs: http://127.0.0.1:8000/docs
 
 ## API endpoints
-- `GET /api/health`
+- `GET /api/health` (includes `db`: `turso` | `sqlite`)
 - `GET /api/todos` (optional `?q=` search) · `POST /api/todos`
 - `PUT /api/todos/{id}` (completing a recurring task spawns the next occurrence)
 - `DELETE /api/todos/{id}` · `POST /api/todos/reorder` · `POST /api/todos/clear-completed`
@@ -47,11 +47,14 @@ App: http://127.0.0.1:8000/ · Docs: http://127.0.0.1:8000/docs
 - **DB changes:** use `ensure_column` auto-migration + update `row_to_todo`,
   the Pydantic schemas, and cleaners (`clean_*`). Recurrence rollover happens
   server-side in `PUT /api/todos/{id}` via `advance_due`.
-- **Git:** repo initialized, identity set locally (`git config user.*`).
-  Commit locally on request; the user pushes (branch: rename `master`→`main`
-  on first push). Never commit `backend/todos.db`.
-- **Vercel:** `TODO_DB_PATH=/tmp/todos.db` env; filesystem is ephemeral so
-  SQLite resets there — demo-only (see README).
+- **Git:** repo on branch `main`, identity set locally (`git config user.*`).
+  Commit locally on request; the user pushes. Never commit
+  `backend/todos.db` or `.env`.
+- **Vercel:** two services (`app`, `backend`) — see README. Needs env vars
+  `TURSO_DATABASE_URL` + `TURSO_AUTH_TOKEN` (same values as `.env`); without
+  them the function falls back to a local SQLite file that Vercel wipes on
+  every deploy. `GET /api/health` reports `"db": "turso" | "sqlite"` — use
+  it to verify which mode an instance runs in.
 
 ## Rules for agents
 1. **Write tests for every endpoint you create or change, and always validate
