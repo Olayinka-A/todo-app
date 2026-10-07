@@ -65,7 +65,12 @@ Steps (beginner):
    `backend` (API on `/api/*`), no bindings needed. Your app will be live
    at `https://<name>.vercel.app`.
 4. In the Vercel dashboard for the project, go to Settings → Environment
-   Variables and add: `TODO_DB_PATH` = `/tmp/todos.db`.
+   Variables and add both (Values → copy from your local `.env`, never
+   commit that file):
+   `TURSO_DATABASE_URL` = `libsql://todo-annie.aws-ap-northeast-1.turso.io`
+   `TURSO_AUTH_TOKEN` = your Turso token.
+   Redeploy after adding them. This replaces the old SQLite file with your
+   hosted Turso database — data now persists across deploys.
 
 ⚠️ Honest warning: Vercel's filesystem is ephemeral — SQLite data written to
 `/tmp` disappears on redeploys / cold starts. It works for a demo, but for

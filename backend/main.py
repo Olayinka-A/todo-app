@@ -47,9 +47,15 @@ def _resolve_db_path() -> Path:
 
 DB_PATH = _resolve_db_path()
 if USE_TURSO:
-    print("DB: Turso (libsql://…)", flush=True)
+    print("DB: Turso (" + TURSO_URL.split("://")[0] + "://…)", flush=True)
 else:
-    print(f"DB: local file {DB_PATH}", flush=True)
+    missing = [k for k, v in (("TURSO_DATABASE_URL", TURSO_URL),
+                              ("TURSO_AUTH_TOKEN", TURSO_TOKEN)) if not v]
+    if missing:
+        print(f"DB: LOCAL FILE {DB_PATH} — Turso OFF, env vars missing: "
+              f"{', '.join(missing)}", flush=True)
+    else:
+        print(f"DB: local file {DB_PATH}", flush=True)
 
 app = FastAPI(title="ToDo App API")
 
@@ -243,7 +249,9 @@ def advance_due(due: str, recurrence: str) -> str:
 # ---------- API ----------
 @app.get("/api/health")
 def health():
-    return {"ok": True}
+    # "db" tells you at a glance whether this instance talks to Turso or a
+    # local file (check it on Vercel: https://<your-app>.vercel.app/api/health)
+    return {"ok": True, "db": "turso" if USE_TURSO else "sqlite"}
 
 
 @app.get("/api/todos")

@@ -8,6 +8,9 @@ no Node/npm build step). Backend serves the frontend on one URL (port 8000).
 ## Layout
 - `backend/main.py` — all API routes + SQLite (incl. schema `init_db`,
   auto-migration via `ensure_column`) + static serving of `frontend/`
+- `backend/turso_db.py` — stdlib-only Turso client (HTTPS). Used when
+  `TURSO_DATABASE_URL` + `TURSO_AUTH_TOKEN` are set (via `.env` locally,
+  dashboard env on Vercel); otherwise local SQLite file
 - `backend/requirements.txt` — `fastapi`, `uvicorn` (root `requirements.txt`
   mirrors it for Vercel)
 - `frontend/` — `index.html`, `app.js`, `styles.css`, `manifest.json`, `icon.svg`
